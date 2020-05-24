@@ -9,7 +9,7 @@ const XMLWriter = require("xml-writer");
 import * as _ from "underscore";
 
 import { assert } from "node-opcua-assert";
-import { BrowseDirection, LocalizedText, makeNodeClassMask, makeResultMask, NodeClass } from "node-opcua-data-model";
+import { BrowseDirection, LocalizedText, makeNodeClassMask, makeResultMask, NodeClass, makeAccessLevelFlag } from "node-opcua-data-model";
 import { QualifiedName } from "node-opcua-data-model";
 import {
     FieldBasic,
@@ -478,7 +478,7 @@ function _dumpValue(
     xw.endElement();
 }
 
-function _dumpArrayDimensions(
+function _dumpArrayDimensionsAttribute(
     xw: XmlWriter,
     node: UAVariableType | UAVariable
 ) {
@@ -586,6 +586,7 @@ function dumpReferencedNodes(
     }
 }
 
+const currentReadFlag = makeAccessLevelFlag("CurrentRead");
 function dumpCommonAttributes(
     xw: XmlWriter,
     node: BaseNode
@@ -600,6 +601,12 @@ function dumpCommonAttributes(
     if (node.hasOwnProperty("isAbstract")) {
         if ((node as any).isAbstract) {
             xw.writeAttribute("IsAbstract", (node as any).isAbstract ? "true" : "false");
+        }
+    }
+    if (node.hasOwnProperty("accessLevel")) {
+        // CurrentRead is by default
+        if ((node as any).accessLevel !== currentReadFlag) {
+            xw.writeAttribute("AccessLevel", (node as any).accessLevel);
         }
     }
 }
@@ -778,9 +785,11 @@ function dumpUAVariable(
         // attributes
         dumpCommonAttributes(xw, node);
 
-        if (node.valueRank !== -1) {
+        if (node.valueRank !== -1) { // -1 = Scalar
             xw.writeAttribute("ValueRank", node.valueRank);
         }
+
+        _dumpArrayDimensionsAttribute(xw, node);
 
         const dataTypeNode = addressSpace.findNode(node.dataType);
         if (dataTypeNode) {
@@ -791,7 +800,6 @@ function dumpUAVariable(
         }
     }
     {
-        _dumpArrayDimensions(xw, node);
 
         // sub elements
         dumpCommonElements(xw, node);
@@ -844,7 +852,7 @@ function dumpUAVariableType(
         }
     }
     {
-        _dumpArrayDimensions(xw, node);
+        _dumpArrayDimensionsAttribute(xw, node);
 
         // sub elements
         dumpCommonElements(xw, node);

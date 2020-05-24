@@ -7,6 +7,7 @@ import * as chalk from "chalk";
 import * as _ from "underscore";
 
 import { assert } from "node-opcua-assert";
+import { UInt32 } from "node-opcua-basic-types";
 import { NodeClass } from "node-opcua-data-model";
 import { BrowseDirection } from "node-opcua-data-model";
 import { AttributeIds } from "node-opcua-data-model";
@@ -42,7 +43,7 @@ import * as tools from "./tool_isSupertypeOf";
 import { get_subtypeOfObj } from "./tool_isSupertypeOf";
 import { get_subtypeOf } from "./tool_isSupertypeOf";
 import { UAObjectType } from "./ua_object_type";
-import { UAVariable } from "./ua_variable";
+import { UAVariable, adjust_accessLevel, adjust_userAccessLevel } from "./ua_variable";
 
 const debugLog = make_debugLog(__filename);
 const doDebug = checkDebugFlag(__filename);
@@ -62,10 +63,8 @@ export class UAVariableType extends BaseNode implements UAVariableTypePublic {
 
     public readonly isAbstract: boolean;
     public dataType: NodeId;
-    public readonly accessLevel: number;
-    public readonly userAccessLevel: number;
     public valueRank: number;
-    public arrayDimensions: number[];
+    public arrayDimensions: UInt32[];
     public readonly minimumSamplingInterval: number;
     public readonly value: any;
     public historizing: boolean;
@@ -74,8 +73,6 @@ export class UAVariableType extends BaseNode implements UAVariableTypePublic {
 
         super(options);
 
-        this.accessLevel = 0;
-        this.userAccessLevel = 0;
         this.minimumSamplingInterval = 0;
 
         this.historizing = isNullOrUndefined(options.historizing) ? false : options.historizing;
