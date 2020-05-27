@@ -249,10 +249,15 @@ function apply_filter(
   }
   if (this.filter instanceof DataChangeFilter) {
     return apply_datachange_filter.call(this, newDataValue, this.oldDataValue);
+  } else {
+    // if filter not set, by default report changes to Status or Value only
+    if (newDataValue.statusCode.value !== this.oldDataValue.statusCode.value) {
+      return true; // Keep because statusCode has changed ...
+    }
+    return !sameVariant(newDataValue.value, this.oldDataValue.value);
   }
   return true; // keep
   // else {
-  //      // if filter not set, by default report changes to Status or Value only
   //      return !sameDataValue(newDataValue, this.oldDataValue, TimestampsToReturn.Neither);
   // }
   // return true; // keep
@@ -315,6 +320,20 @@ export interface ISubscription {
   $session?: any;
   subscriptionDiagnostics: SubscriptionDiagnosticsDataType;
 }
+
+function isSourceNewerThan(a: DataValue, b?: DataValue): boolean {
+  if (!b) {
+    return true;
+  }
+  const at = a.sourceTimestamp?.getTime() || 0;
+  const bt = b.sourceTimestamp?.getTime() || 0;
+
+  if (at === bt) {
+    return a.sourcePicoseconds > b.sourcePicoseconds;
+  }
+  return at > bt;
+}
+
 /**
  * a server side monitored item
  *
@@ -722,7 +741,7 @@ export class MonitoredItem extends EventEmitter {
           console.log(" SAMPLING ERROR =>", err);
         } else {
           // only record value if source timestamp is newer
-          // xx if (newDataValue.sourceTimestamp > this.oldDataValue.sourceTimestamp) {
+          // xx if (newDataValue && isSourceNewerThan(newDataValue, this.oldDataValue)) {
           this._on_value_changed(newDataValue!);
           // xx }
         }
@@ -958,7 +977,6 @@ export class MonitoredItem extends EventEmitter {
     // console.log(chalk.cyan("Setting Ovver"), !!this.$subscription, !!this.$subscription!.subscriptionDiagnostics);
     if (this.$subscription && this.$subscription.subscriptionDiagnostics) {
       this.$subscription.subscriptionDiagnostics.monitoringQueueOverflowCount++;
-      console.log(" this.$subscription.subcriptionDiagnosticInfo.monitoringQueueOverflowCount = ", this.$subscription.subscriptionDiagnostics.monitoringQueueOverflowCount);
     }
     // to do eventQueueOverFlowCount
   }

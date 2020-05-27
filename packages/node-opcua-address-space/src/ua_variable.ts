@@ -619,21 +619,17 @@ export class UAVariable extends BaseNode implements UAVariablePublic {
 
         if (!dataValue.sourceTimestamp) {
 
-            dataValue.sourceTimestamp = this._dataValue.sourceTimestamp;
-            dataValue.sourcePicoseconds = this._dataValue.sourcePicoseconds;
 
-            /*
-                        if (false) {
-                            if (context.currentTime) {
-                                dataValue.sourceTimestamp = context.currentTime;
-                                dataValue.sourcePicoseconds = 0;
-                            } else {
-                                const clock = getCurrentClock();
-                                dataValue.sourceTimestamp = clock.timestamp;
-                                dataValue.sourcePicoseconds = clock.picoseconds;
-                            }
-                        }
-                        */
+            // source timestamp was not specified by the caller
+            // we will set the timestamp ourself with the current clock
+            if (context.currentTime) {
+                dataValue.sourceTimestamp = context.currentTime;
+                dataValue.sourcePicoseconds = 0;
+            } else {
+                const { timestamp, picoseconds } = getCurrentClock();
+                dataValue.sourceTimestamp = timestamp;
+                dataValue.sourcePicoseconds = picoseconds;
+            }
         }
 
         if (context.currentTime && !dataValue.serverTimestamp) {
@@ -1276,7 +1272,9 @@ export class UAVariable extends BaseNode implements UAVariablePublic {
 
             Constructor = addressSpace.getExtensionObjectConstructor(this.dataType);
             assert(Constructor);
-            assert(this.$extensionObject.constructor.name === Constructor.name);
+            if (this.$extensionObject.constructor.name !== Constructor.name) {
+                throw new Error("Expecting " + Constructor.name + " but got a " + this.$extensionObject.constructor.name);
+            }
         }
 
         let property: any;
